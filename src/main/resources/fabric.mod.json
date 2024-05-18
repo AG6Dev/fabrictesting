@@ -1,6 +1,6 @@
 {
 	"schemaVersion": 1,
-	"id": "modid",
+	"id": "example",
 	"version": "${version}",
 	"name": "Example mod",
 	"description": "This is an example description! Tell everyone what your mod is about!",
@@ -23,7 +23,7 @@
 		]
 	},
 	"mixins": [
-		"modid.mixins.json",
+      "example.mixins.json",
 		{
 			"config": "modid.client.mixins.json",
 			"environment": "client"
