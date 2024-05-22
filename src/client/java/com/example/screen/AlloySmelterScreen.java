@@ -1,0 +1,41 @@
+package com.example.screen;
+
+import com.example.ExampleMod;
+import com.example.blockentity.AlloySmelterBlockEntity;
+import com.example.menu.AlloySmelterScreenHandler;
+import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.screen.ingame.HandledScreen;
+import net.minecraft.entity.player.PlayerInventory;
+import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
+import net.minecraft.util.math.MathHelper;
+
+public class AlloySmelterScreen extends HandledScreen<AlloySmelterScreenHandler> {
+    public static final Identifier TEXTURE = new Identifier(ExampleMod.MOD_ID, "textures/gui/alloy_smelter.png");
+
+    public AlloySmelterScreen(AlloySmelterScreenHandler handler, PlayerInventory inventory, Text title) {
+        super(handler, inventory, title);
+    }
+
+    @Override
+    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+        super.render(context, mouseX, mouseY, delta);
+        this.drawMouseoverTooltip(context, mouseX, mouseY);
+    }
+
+    @Override
+
+    protected void drawBackground(DrawContext context, float delta, int mouseX, int mouseY) {
+        context.drawTexture(TEXTURE, this.x, this.y, 0, 0, this.backgroundWidth, this.backgroundHeight);
+
+        System.out.println(handler.blockEntity.getPos() + " " + ((AlloySmelterBlockEntity) handler.blockEntity).currentProgress);
+        System.out.println(((AlloySmelterBlockEntity) handler.blockEntity).totalProgress);
+
+        int burnProgress = MathHelper.ceil(((float) handler.burnTime / handler.totalBurnTime) * 13);
+        System.out.println(burnProgress);
+        context.drawTexture(TEXTURE, this.x + 47, this.y + 37, 176, 0, 14, burnProgress);
+
+        int smeltProgress = MathHelper.ceil(((float) handler.smeltProgress / handler.totalProgress) * 24);
+        context.drawTexture(TEXTURE, this.x + 79, this.y + 35, 176, 14, smeltProgress + 1, 16);
+    }
+}

@@ -1,9 +1,6 @@
 package com.example;
 
-import com.example.init.BlockInit;
-import com.example.init.DataComponentInit;
-import com.example.init.ItemGroupInit;
-import com.example.init.ItemInit;
+import com.example.init.*;
 import net.fabricmc.api.ModInitializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,6 +14,9 @@ public final class ExampleMod implements ModInitializer {
         ItemGroupInit.init();
         ItemInit.init();
         BlockInit.init();
+        BlockEntityTypeInit.init();
+        RecipeTypeInit.init();
+        ScreenHandlerInit.init();
         DataComponentInit.init();
     }
 }

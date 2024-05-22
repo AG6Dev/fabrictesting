@@ -1,0 +1,14 @@
+{
+  "type": "example:alloy_smelting",
+  "cookTime": 200,
+  "ingredientA": {
+    "item": "minecraft:iron_ingot"
+  },
+  "ingredientB": {
+    "item": "minecraft:gold_ingot"
+  },
+  "output": {
+    "id": "minecraft:diamond",
+    "count": 64
+  }
+}
