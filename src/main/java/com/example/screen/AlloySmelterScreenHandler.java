@@ -1,43 +1,27 @@
-package com.example.menu;
+package com.example.screen;
 
-import com.example.blockentity.AlloySmelterBlockEntity;
-import com.example.blockentity.BlockEntityInventory;
 import com.example.init.ScreenHandlerInit;
-import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.inventory.Inventory;
+import net.minecraft.inventory.SimpleInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.screen.ArrayPropertyDelegate;
 import net.minecraft.screen.PropertyDelegate;
 import net.minecraft.screen.ScreenHandler;
 import net.minecraft.screen.slot.Slot;
-import net.minecraft.util.math.BlockPos;
 
 public class AlloySmelterScreenHandler extends ScreenHandler {
-    public int burnTime, totalBurnTime, smeltProgress, totalProgress;
+    private final PropertyDelegate properties;
 
-    public BlockEntity blockEntity;
-
-    public AlloySmelterScreenHandler(int syncId, PlayerInventory playerInventory, BlockPos pos) {
-        this(syncId, playerInventory, playerInventory.player.getWorld().getBlockEntity(pos), new ArrayPropertyDelegate(4));
+    public AlloySmelterScreenHandler(int syncId, PlayerInventory playerInventory) {
+        this(syncId, playerInventory, new SimpleInventory(4), new ArrayPropertyDelegate(4));
     }
 
-    public AlloySmelterScreenHandler(int id, PlayerInventory playerInventory, BlockEntity blockEntity, PropertyDelegate delegate) {
+    public AlloySmelterScreenHandler(int id, PlayerInventory playerInventory, Inventory inventory, PropertyDelegate delegate) {
         super(ScreenHandlerInit.ALLOY_SMELTER, id);
 
-        this.burnTime = delegate.get(0);
-        this.totalBurnTime = delegate.get(1);
-        this.smeltProgress = delegate.get(2);
-        this.totalProgress = delegate.get(3);
-
-        if (!(blockEntity instanceof AlloySmelterBlockEntity)) {
-            throw new IllegalArgumentException("BlockEntity is not an instance of AlloySmelterBlockEntity!");
-        }
-
-        this.blockEntity = blockEntity;
-
-        Inventory inventory = (BlockEntityInventory) blockEntity;
+        this.properties = delegate;
 
         this.addProperties(delegate);
 
@@ -65,12 +49,23 @@ public class AlloySmelterScreenHandler extends ScreenHandler {
     }
 
     @Override
-    public boolean isValid(int slot) {
-        return true;
+    public boolean canUse(PlayerEntity player) {
+        return player.getInventory().canPlayerUse(player);
     }
 
-    @Override
-    public boolean canUse(PlayerEntity player) {
-        return true;
+    public int getBurnTime() {
+        return this.properties.get(0);
+    }
+
+    public int getTotalBurnTime() {
+        return this.properties.get(1);
+    }
+
+    public int getSmeltProgress() {
+        return this.properties.get(2);
+    }
+
+    public int getMaxProgress() {
+        return this.properties.get(3);
     }
 }

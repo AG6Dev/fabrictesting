@@ -9,8 +9,6 @@ import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.BlockEntityTicker;
 import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.screen.NamedScreenHandlerFactory;
-import net.minecraft.screen.ScreenHandlerFactory;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
@@ -29,7 +27,7 @@ public class AlloySmelterBlock extends BlockWithEntity {
 
     @Override
     protected ActionResult onUse(BlockState state, World world, BlockPos pos, PlayerEntity player, BlockHitResult hit) {
-        if(!world.isClient()) {
+        if (!world.isClient()) {
             if (world.getBlockEntity(pos) instanceof AlloySmelterBlockEntity blockEntity) {
                 player.openHandledScreen(blockEntity);
             }
@@ -46,6 +44,6 @@ public class AlloySmelterBlock extends BlockWithEntity {
     @Nullable
     @Override
     public <T extends BlockEntity> BlockEntityTicker<T> getTicker(World world, BlockState state, BlockEntityType<T> type) {
-        return (world1, pos, state1, blockEntity) -> ((AlloySmelterBlockEntity)blockEntity).tick();
+        return (world1, pos, state1, blockEntity) -> ((AlloySmelterBlockEntity) blockEntity).tick();
     }
 }

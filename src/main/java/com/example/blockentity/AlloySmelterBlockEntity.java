@@ -1,9 +1,8 @@
 package com.example.blockentity;
 
 import com.example.init.BlockEntityTypeInit;
-import com.example.menu.AlloySmelterScreenHandler;
 import com.example.recipe.AlloySmeltingRecipe;
-import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory;
+import com.example.screen.AlloySmelterScreenHandler;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.FurnaceBlockEntity;
@@ -17,9 +16,9 @@ import net.minecraft.network.packet.Packet;
 import net.minecraft.network.packet.s2c.play.BlockEntityUpdateS2CPacket;
 import net.minecraft.recipe.RecipeEntry;
 import net.minecraft.registry.RegistryWrapper;
+import net.minecraft.screen.NamedScreenHandlerFactory;
 import net.minecraft.screen.PropertyDelegate;
 import net.minecraft.screen.ScreenHandler;
-import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.collection.DefaultedList;
@@ -28,69 +27,92 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Optional;
 
-//TODO: Transfer this over to new transfer api
-public class AlloySmelterBlockEntity extends BlockEntity implements Tickable, ExtendedScreenHandlerFactory<BlockPos>, BlockEntityInventory {
-    public static final Text TITLE = Text.translatable("container.example.alloy_smelter");
+//eventually add hopper functionality etc
+public class AlloySmelterBlockEntity extends BlockEntity implements Tickable, BlockEntityInventory, NamedScreenHandlerFactory {
+    public final DefaultedList<ItemStack> inventory = DefaultedList.ofSize(4, ItemStack.EMPTY);
+    public final PropertyDelegate propertyDelegate;
 
-    private final DefaultedList<ItemStack> inventory = DefaultedList.ofSize(4, ItemStack.EMPTY);
-    private Identifier currentRecipe;
-
-    public int burnTime;
-    public int totalBurnTime;
-    public int currentProgress;
-    public int totalProgress;
-
-    public PropertyDelegate propertyDelegate = new PropertyDelegate() {
-        @Override
-        public int get(int index) {
-            return switch (index) {
-                case 0 -> burnTime;
-                case 1 -> totalBurnTime;
-                case 2 -> currentProgress;
-                case 3 -> totalProgress;
-                default -> 0;
-            };
-        }
-
-        @Override
-        public void set(int index, int value) {
-            switch (index) {
-                case 0 -> burnTime = value;
-                case 1 -> totalBurnTime = value;
-                case 2 -> currentProgress = value;
-                case 3 -> totalProgress = value;
-            }
-        }
-
-        @Override
-        public int size() {
-            return 4;
-        }
-    };
+    public int burnTime, totalBurnTime, smeltingProgress, maxProgress;
+    public Identifier currentRecipe;
 
     public AlloySmelterBlockEntity(BlockPos pos, BlockState state) {
         super(BlockEntityTypeInit.ALLOY_SMELTER, pos, state);
+        this.propertyDelegate = new PropertyDelegate() {
+            @Override
+            public int get(int index) {
+                return switch (index) {
+                    case 0 -> burnTime;
+                    case 1 -> totalBurnTime;
+                    case 2 -> smeltingProgress;
+                    case 3 -> maxProgress;
+                    default -> 0;
+                };
+            }
+
+            @Override
+            public void set(int index, int value) {
+                switch (index) {
+                    case 0 -> burnTime = value;
+                    case 1 -> totalBurnTime = value;
+                    case 2 -> smeltingProgress = value;
+                    case 3 -> maxProgress = value;
+                }
+            }
+
+            @Override
+            public int size() {
+                return 4;
+            }
+        };
     }
 
     @Override
-    protected void readNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registryLookup) {
-        super.readNbt(nbt, registryLookup);
+    public void tick() {
+        if (this.world == null || this.world.isClient) return;
 
-        Inventories.readNbt(nbt, this.inventory, registryLookup);
-        this.currentProgress = nbt.getInt("CookTime");
-        this.totalProgress = nbt.getInt("TotalCookTime");
-        this.burnTime = nbt.getInt("BurnTime");
-        this.totalBurnTime = nbt.getInt("TotalBurnTime");
-    }
+        if (this.currentRecipe == null) {
+            Optional<RecipeEntry<AlloySmeltingRecipe>> recipe = this.world.getRecipeManager().getFirstMatch(AlloySmeltingRecipe.Type.INSTANCE, this, this.world);
+            if (recipe.isPresent()) {
+                this.currentRecipe = recipe.get().id();
+                this.maxProgress = recipe.get().value().cookTime();
+                this.smeltingProgress = 0;
+            }
+            update();
+            return;
+        }
 
-    @Override
-    protected void writeNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registryLookup) {
-        super.writeNbt(nbt, registryLookup);
-        Inventories.writeNbt(nbt, this.inventory, registryLookup);
-        nbt.putInt("CookTime", this.currentProgress);
-        nbt.putInt("TotalCookTime", this.totalProgress);
-        nbt.putInt("BurnTime", this.burnTime);
-        nbt.putInt("TotalBurnTime", this.totalBurnTime);
+        Optional<RecipeEntry<AlloySmeltingRecipe>> recipe = this.world.getRecipeManager().getFirstMatch(AlloySmeltingRecipe.Type.INSTANCE, this, this.world);
+        if (recipe.isEmpty() || !recipe.get().id().equals(this.currentRecipe) || !canOutputToSlot(recipe.get().value().output().copy())) {
+            resetProgress();
+            return;
+        }
+
+        if (this.burnTime > 0) {
+            this.burnTime--;
+            update();
+        }
+
+        if (this.burnTime <= 0) {
+            var stack = this.inventory.get(2);
+            if (FurnaceBlockEntity.canUseAsFuel(stack)) {
+                this.burnTime = this.totalBurnTime = FurnaceBlockEntity.createFuelTimeMap().get(stack.getItem());
+                stack.decrement(1);
+                update();
+            } else {
+                resetAll();
+                return;
+            }
+        }
+
+        this.smeltingProgress++;
+        update();
+        if (this.smeltingProgress >= this.maxProgress) {
+            this.inventory.get(0).decrement(1);
+            this.inventory.get(1).decrement(1);
+            this.inventory.set(3, recipe.get().value().output().copy());
+            resetProgress();
+        }
+
     }
 
     @Nullable
@@ -104,75 +126,24 @@ public class AlloySmelterBlockEntity extends BlockEntity implements Tickable, Ex
         return createNbt(registryLookup);
     }
 
-
     @Override
-    public void tick() {
-        if(this.getWorld().isClient())
-            return;
-
-        if(this.burnTime > 0) {
-            this.burnTime--;
-            markDirty();
-        }
-
-        if (this.currentRecipe == null) {
-            Optional<RecipeEntry<AlloySmeltingRecipe>> recipeEntry = this.getWorld().getRecipeManager().getFirstMatch(AlloySmeltingRecipe.Type.INSTANCE, this, this.getWorld());
-            if(recipeEntry.isPresent()) {
-                this.currentRecipe = recipeEntry.get().id();
-                this.totalProgress = recipeEntry.get().value().cookTime();
-                this.currentProgress = 0;
-            }
-            markDirty();
-            return;
-        }
-
-        Optional<RecipeEntry<AlloySmeltingRecipe>> recipeEntry = this.getWorld().getRecipeManager().getFirstMatch(AlloySmeltingRecipe.Type.INSTANCE, this, this.getWorld());
-        if(recipeEntry.isEmpty() || !recipeEntry.get().id().equals(this.currentRecipe)) {
-            this.currentRecipe = null;
-            this.totalProgress = 0;
-            this.currentProgress = 0;
-            markDirty();
-            return;
-        }
-
-        if(this.burnTime <= 0) {
-            var stack = this.inventory.get(2);
-            if (FurnaceBlockEntity.canUseAsFuel(stack)) {
-                this.burnTime = this.totalBurnTime = FurnaceBlockEntity.createFuelTimeMap().get(stack.getItem());
-                stack.decrement(1);
-                markDirty();
-            } else {
-                this.currentRecipe = null;
-                this.totalProgress = 0;
-                this.currentProgress = 0;
-                this.totalBurnTime = 0;
-                markDirty();
-                return;
-            }
-        }
-
-        this.currentProgress++;
-        if(this.currentProgress >= this.totalProgress) {
-            this.currentProgress = 0;
-            this.totalProgress = 0;
-            this.currentRecipe = null;
-
-            this.inventory.get(0).decrement(1);
-            this.inventory.get(1).decrement(1);
-            this.inventory.set(3, recipeEntry.get().value().output().copy());
-            markDirty();
-        }
+    protected void readNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registryLookup) {
+        Inventories.readNbt(nbt, this.inventory, registryLookup);
+        this.burnTime = nbt.getInt("BurnTime");
+        this.totalBurnTime = nbt.getInt("TotalBurnTime");
+        this.smeltingProgress = nbt.getInt("SmeltingProgress");
+        this.maxProgress = nbt.getInt("MaxProgress");
+        super.readNbt(nbt, registryLookup);
     }
 
     @Override
-    public Text getDisplayName() {
-        return AlloySmelterBlockEntity.TITLE;
-    }
-
-    @Nullable
-    @Override
-    public ScreenHandler createMenu(int syncId, PlayerInventory playerInventory, PlayerEntity player) {
-        return new AlloySmelterScreenHandler(syncId, playerInventory, this, this.propertyDelegate);
+    protected void writeNbt(NbtCompound nbt, RegistryWrapper.WrapperLookup registryLookup) {
+        super.writeNbt(nbt, registryLookup);
+        Inventories.writeNbt(nbt, this.inventory, registryLookup);
+        nbt.putInt("BurnTime", this.burnTime);
+        nbt.putInt("TotalBurnTime", this.totalBurnTime);
+        nbt.putInt("SmeltingProgress", this.smeltingProgress);
+        nbt.putInt("MaxProgress", this.maxProgress);
     }
 
     @Override
@@ -181,7 +152,40 @@ public class AlloySmelterBlockEntity extends BlockEntity implements Tickable, Ex
     }
 
     @Override
-    public BlockPos getScreenOpeningData(ServerPlayerEntity player) {
-        return this.pos;
+    public Text getDisplayName() {
+        return Text.translatable("container.example.alloy_smelter");
+    }
+
+    @Nullable
+    @Override
+    public ScreenHandler createMenu(int syncId, PlayerInventory playerInventory, PlayerEntity player) {
+        return new AlloySmelterScreenHandler(syncId, playerInventory, this, this.propertyDelegate);
+    }
+
+    public boolean canOutputToSlot(ItemStack stackToOutput) {
+        return this.inventory.get(3).isEmpty() || (ItemStack.areItemsAndComponentsEqual(this.inventory.get(3), stackToOutput) && this.inventory.get(3).getCount() + stackToOutput.getCount() <= stackToOutput.getMaxCount());
+    }
+
+    public void resetAll() {
+        this.burnTime = 0;
+        this.totalBurnTime = 0;
+        this.smeltingProgress = 0;
+        this.maxProgress = 0;
+        this.currentRecipe = null;
+        update();
+    }
+
+    public void resetProgress() {
+        this.smeltingProgress = 0;
+        this.maxProgress = 0;
+        this.currentRecipe = null;
+        update();
+    }
+
+    public void update() {
+        if (this.world == null) return;
+
+        this.world.updateListeners(this.pos, this.getCachedState(), this.getCachedState(), 3);
+        markDirty();
     }
 }
