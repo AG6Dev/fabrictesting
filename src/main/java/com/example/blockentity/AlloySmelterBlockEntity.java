@@ -2,7 +2,7 @@ package com.example.blockentity;
 
 import com.example.init.BlockEntityTypeInit;
 import com.example.recipe.AlloySmeltingRecipe;
-import com.example.screen.AlloySmelterScreenHandler;
+import com.example.client.screen.AlloySmelterScreenHandler;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.FurnaceBlockEntity;

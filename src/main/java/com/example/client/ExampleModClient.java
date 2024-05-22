@@ -1,7 +1,7 @@
-package com.example;
+package com.example.client;
 
 import com.example.init.ScreenHandlerInit;
-import com.example.screen.AlloySmelterScreen;
+import com.example.client.screen.AlloySmelterScreen;
 import net.fabricmc.api.ClientModInitializer;
 import net.minecraft.client.gui.screen.ingame.HandledScreens;
 

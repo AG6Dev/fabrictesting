@@ -1,4 +1,4 @@
-package com.example.screen;
+package com.example.client.screen;
 
 import com.example.ExampleMod;
 import net.minecraft.client.gui.DrawContext;

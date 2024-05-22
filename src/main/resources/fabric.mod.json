@@ -19,15 +19,14 @@
 			"com.example.ExampleMod"
 		],
 		"client": [
-			"com.example.ExampleModClient"
+			"com.example.client.ExampleModClient"
+		],
+		"fabric-datagen": [
+			"com.example.data.ExampleDataGenerator"
 		]
 	},
 	"mixins": [
-      "example.mixins.json",
-		{
-			"config": "modid.client.mixins.json",
-			"environment": "client"
-		}
+      "example.mixins.json"
 	],
 	"depends": {
 		"fabricloader": ">=0.15.10",

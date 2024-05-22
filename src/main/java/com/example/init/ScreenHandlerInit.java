@@ -1,7 +1,7 @@
 package com.example.init;
 
 import com.example.ExampleMod;
-import com.example.screen.AlloySmelterScreenHandler;
+import com.example.client.screen.AlloySmelterScreenHandler;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.resource.featuretoggle.FeatureFlags;

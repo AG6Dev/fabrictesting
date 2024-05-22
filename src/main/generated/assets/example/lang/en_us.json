@@ -1,0 +1,9 @@
+{
+  "block.example.alloy_smelter": "Alloy Smelter",
+  "block.example.charger": "Charger",
+  "container.example.alloy_smelter": "Alloy Smelter",
+  "item.example.battery": "Battery",
+  "item.example.data_item": "Data Item",
+  "item.example.data_item.tooltip": "Use count: %s",
+  "itemGroup.example": "Example Tab"
+}

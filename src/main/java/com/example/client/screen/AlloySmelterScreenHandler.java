@@ -1,4 +1,4 @@
-package com.example.screen;
+package com.example.client.screen;
 
 import com.example.init.ScreenHandlerInit;
 import net.minecraft.entity.player.PlayerEntity;
